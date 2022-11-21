@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: gitea-setup-
+  name: configure-gitea
+  labels:
+      app.kubernetes.io/part-of: gitea
+      name: configure-gitea
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      containers:
+      - name: git
+        image: quay.io/calopezb/git-utils:1.0.0
+        env:
+        - name: GITEA_HOSTNAME
+          value: @HOSTNAME
+        command:
+        - /bin/sh
+        - '-c'
+        args:
+        - |-
+          pwd
+          mkdir repository
+          cd repository
+
+          echo "-- Downloading workshop repository"
+          git clone https://github.com/clbartolome/tekton-workshop      
+
+          
+          echo "-- Creating gitea user"
+          curl -X POST \
+            -d '{"username":"gitea","password":"openshift","retype":"openshift","email":"gitea@gitea.com","send_notify":false}' \
+            -H "Content-Type: application/json" \
+            http://$GITEA_HOSTNAME/user/sign_up
+
+          echo "-- Creating application source repository"
+          RESPONSE=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST \
+            -u gitea:openshift \
+            -d '{"auto_init": true,"default_branch": "master","gitignores": "VisualStudioCode","name": "application-source","private": false,"trust_model": "default"}' \
+            -H "Content-Type: application/json" \
+            http://$GITEA_HOSTNAME/api/v1/user/repos)
+
+          if [ "$RESPONSE" != "201" ]; then
+              echo "Error creating application source repository, error code: $RESPONSE"
+              exit 1
+          fi
+
+          git clone http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-source
+          cp -a tekton-workshop/application-source/. application-source
+          cd application-source
+          git config user.email "gitea@gitea.com"
+          git config user.name "gitea"
+          # TODO GREPS + SED
+          git add . && git commit -m "Code initialized." && git push
+          cd ..
+
+          echo "-- Creating application deploy repository"
+          RESPONSE=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST \
+            -u gitea:openshift \
+            -d '{"auto_init": true,"default_branch": "master","gitignores": "VisualStudioCode","name": "application-deploy","private": false,"trust_model": "default"}' \
+            -H "Content-Type: application/json" \
+            http://$GITEA_HOSTNAME/api/v1/user/repos)
+
+          if [ "$RESPONSE" != "201" ]; then
+              echo "Error creating application deploy repository, error code: $RESPONSE"
+              exit 1
+          fi
+
+          git clone http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-deploy
+          cp -a tekton-workshop/application-deploy/. application-deploy
+          cd application-deploy
+          git config user.email "gitea@gitea.com"
+          git config user.name "gitea"
+          # TODO GREPS + SED
+          git add . && git commit -m "Code initialized." && git push
+          cd ..
+                    
+          echo "------------------------------"
+        imagePullPolicy: Always
+      restartPolicy: Never

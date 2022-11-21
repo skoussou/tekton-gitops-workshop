@@ -1,0 +1,167 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: cd-pipeline
+  labels:
+    app.kubernetes.io/instance: cd-pipeline
+spec:
+  params:
+    - name: APP
+      type: string
+    - name: MESSAGE
+      type: string
+    - name: APP_REPO
+      type: string
+    - name: APP_REVISION
+      type: string
+    - name: IMAGE
+      type: string
+    - name: IMAGE_VERSION
+      type: string
+    - name: DEPLOY_REPO
+      type: string
+    - name: DEPLOY_OWNER
+      type: string
+    - name: DEPLOY_NAME
+      type: string
+    - name: ENV
+      type: string
+  workspaces:
+    - name: deploy-source
+  tasks:
+# ------------ SYNC ARGOCD ------------ #
+    - name: argo-sync
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["dev", "test"]
+      taskRef:
+        kind: Task
+        name: sync-argo
+      params:
+        - name: APP_NAME
+          value: $(params.APP)-$(params.ENV)
+# ------------ NEXT ENVIRONMENT PROMOTION ------------ #
+    - name: get-promotion-env
+      taskRef:
+        kind: Task
+        name: next-env
+      params:
+        - name: ENV
+          value: $(params.ENV)
+# ------------ INTEGRATION TESTS (dev) ------------ #
+    - name: integration-test
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["dev"]
+      runAfter:
+        - argo-sync
+        - get-promotion-env
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: integration-test-mock
+# ------------ PERFORMANCE TESTS (test) ------------ #
+    - name: performance-test
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["test"]
+      runAfter:
+        - argo-sync
+        - get-promotion-env
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: integration-test-mock
+# ------------ TAG IMAGE ------------ #
+    - name: create-release
+      runAfter:
+        - performance-test
+      taskRef:
+        kind: Task
+        name: tag-image
+      params:
+        - name: IMAGE
+          value: sk-app-dev/$(params.APP)
+        - name: IMAGE_TAG
+          value: $(params.IMAGE_VERSION)
+        - name: IMAGE_NEW_TAG
+          value: "$(params.IMAGE_VERSION)-RELEASE"
+# ------------ PROMOTE TO TEST ------------ #
+    - name: promote-to-test
+      runAfter:
+        - integration-test
+      taskRef:
+        kind: Task
+        name: create-pr-to-deploy
+      params:
+        - name: DEPLOY_REPO_URL
+          value: $(params.DEPLOY_REPO)
+        - name: DEPLOY_REPO_OWNER
+          value: $(params.DEPLOY_OWNER)
+        - name: DEPLOY_REPO_NAME
+          value: $(params.DEPLOY_NAME)
+        - name: BRANCH_NAME
+          value: $(tasks.get-promotion-env.results.NEXT_ENV)-image-$(params.IMAGE_VERSION)
+        - name: IMAGE_NAME
+          value: $(params.APP)
+        - name: IMAGE_URL
+          value: $(params.IMAGE)
+        - name: IMAGE_NEW_VERSION
+          value: $(params.IMAGE_VERSION)
+        - name: ENV
+          value: $(tasks.get-promotion-env.results.NEXT_ENV)
+        - name: PR_BODY
+          value: |
+            application: $(params.APP)\nmessage: 'New image for $(tasks.get-promotion-env.results.NEXT_ENV) environment'\napplicationRepo: $(params.APP_REPO)\napplicationRevision: $(params.APP_REVISION)\nimage: $(params.IMAGE)\nversion: $(params.IMAGE_VERSION)\ndeployRepo: $(params.DEPLOY_REPO)\ndeployOwner: $(params.DEPLOY_OWNER)\ndeployName: $(params.DEPLOY_NAME)\nenvironment: $(tasks.get-promotion-env.results.NEXT_ENV)
+      workspaces:
+        - name: source
+          workspace: deploy-source
+# ------------ PROMOTE TO PROD ------------ #
+    - name: promote-to-prod
+      runAfter:
+        - create-release
+      taskRef:
+        kind: Task
+        name: create-pr-to-deploy
+      params:
+        - name: DEPLOY_REPO_URL
+          value: $(params.DEPLOY_REPO)
+        - name: DEPLOY_REPO_OWNER
+          value: $(params.DEPLOY_OWNER)
+        - name: DEPLOY_REPO_NAME
+          value: $(params.DEPLOY_NAME)
+        - name: BRANCH_NAME
+          value: $(tasks.get-promotion-env.results.NEXT_ENV)-image-$(params.IMAGE_VERSION)-RELEASE
+        - name: IMAGE_NAME
+          value: $(params.APP)
+        - name: IMAGE_URL
+          value: $(params.IMAGE)
+        - name: IMAGE_NEW_VERSION
+          value: $(params.IMAGE_VERSION)-RELEASE
+        - name: ENV
+          value: $(tasks.get-promotion-env.results.NEXT_ENV)
+        - name: PR_BODY
+          value: |
+            application: $(params.APP)\nmessage: 'New image for $(tasks.get-promotion-env.results.NEXT_ENV) environment'\napplicationRepo: $(params.APP_REPO)\napplicationRevision: $(params.APP_REVISION)\nimage: $(params.IMAGE)\nversion: $(params.IMAGE_VERSION)-RELEASE\ndeployRepo: $(params.DEPLOY_REPO)\ndeployOwner: $(params.DEPLOY_OWNER)\ndeployName: $(params.DEPLOY_NAME)\nenvironment: $(tasks.get-promotion-env.results.NEXT_ENV)
+      workspaces:
+        - name: source
+          workspace: deploy-source
+# ------------ NOTIFY (prod) ------------ #
+    - name: notify-prod
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["prod"]
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: notify-prod

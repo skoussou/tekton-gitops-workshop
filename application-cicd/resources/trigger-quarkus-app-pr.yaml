@@ -1,0 +1,138 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: "quarkus-app-pr-listener"
+spec:
+  triggers:
+    - name: github-listener
+      interceptors:
+        - ref:
+            name: github
+            kind: ClusterInterceptor
+            apiVersion: triggers.tekton.dev
+          params:
+            - name: eventTypes
+              value:
+                - pull_request
+        - ref:
+            name: cel
+            kind: ClusterInterceptor
+            apiVersion: triggers.tekton.dev
+          params:
+            - name: filter
+              value: "body.action in ['closed'] && body.pull_request.merged == true"
+        - cel:
+            overlays:
+              - key: application
+                expression: "body.pull_request.body.parseYAML().application"        
+              - key: message
+                expression: "body.pull_request.body.parseYAML().message"
+              - key: applicationRepo
+                expression: "body.pull_request.body.parseYAML().applicationRepo"
+              - key: applicationRevision
+                expression: "body.pull_request.body.parseYAML().applicationRevision"
+              - key: image
+                expression: "body.pull_request.body.parseYAML().image"
+              - key: version
+                expression: "body.pull_request.body.parseYAML().version"
+              - key: deployRepo
+                expression: "body.pull_request.body.parseYAML().deployRepo"
+              - key: deployOwner
+                expression: "body.pull_request.body.parseYAML().deployOwner"
+              - key: deployName
+                expression: "body.pull_request.body.parseYAML().deployName"
+              - key: environment
+                expression: "body.pull_request.body.parseYAML().environment"                
+      bindings:
+        - kind: TriggerBinding
+          ref: "cd-trigger-binding"
+      template:
+        ref: "quarkus-app-pr-trigger-template"
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: "cd-trigger-binding"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  params:
+    - name: application
+      value: $(extensions.application)
+    - name: message
+      value: $(extensions.message)
+    - name: applicationRepo
+      value: $(extensions.applicationRepo)
+    - name: applicationRevision
+      value: $(extensions.applicationRevision)
+    - name: image
+      value: $(extensions.image)
+    - name: version
+      value: $(extensions.version)
+    - name: deployRepo
+      value: $(extensions.deployRepo)
+    - name: deployOwner
+      value: $(extensions.deployOwner)
+    - name: deployName
+      value: $(extensions.deployName)
+    - name: environment
+      value: $(extensions.environment)
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: "quarkus-app-pr-trigger-template"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  params:
+    - name: application
+    - name: message
+    - name: applicationRepo
+    - name: applicationRevision
+    - name: image
+    - name: version
+    - name: deployRepo
+    - name: deployOwner
+    - name: deployName
+    - name: environment
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: "cd-quarkus-app-"
+      namespace: sk-workshop-components
+      labels:
+        app.kubernetes.io/instance: cd-pipeline
+        tekton.dev/pipeline: cd-pipeline
+    spec:
+      params:
+        - name: APP
+          value: $(tt.params.application)
+        - name: MESSAGE
+          value: $(tt.params.message)
+        - name: APP_REPO
+          value: $(tt.params.applicationRepo)
+        - name: APP_REVISION
+          value: $(tt.params.applicationRevision)
+        - name: IMAGE
+          value: $(tt.params.image)
+        - name: IMAGE_VERSION
+          value: $(tt.params.version)
+        - name: DEPLOY_REPO
+          value: $(tt.params.deployRepo)
+        - name: DEPLOY_OWNER
+          value: $(tt.params.deployOwner)
+        - name: DEPLOY_NAME
+          value: $(tt.params.deployName)
+        - name: ENV
+          value: $(tt.params.environment)
+      pipelineRef:
+        name: cd-pipeline
+      serviceAccountName: pipeline
+      timeout: 1h0m0s
+      workspaces:
+        - name: deploy-source
+          persistentVolumeClaim:
+            claimName: "deploy-pvc"

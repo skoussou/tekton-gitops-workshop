@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: next-env
+  annotations:
+    description: |
+      Returns the next environment.
+spec:
+  params:
+    - name: ENV
+      description: Environment
+  results:
+    - name: NEXT_ENV
+  steps:
+    - name: get-next-environment
+      image: registry.access.redhat.com/ubi8/ubi-minimal:8.3
+      script: |
+
+        if [ "$(params.ENV)" = "dev" ]; then
+          echo -n "test" > $(results.NEXT_ENV.path)
+          exit 0
+        fi
+
+        if [ "$(params.ENV)" = "test" ]; then
+          echo -n "prod" > $(results.NEXT_ENV.path)
+          exit 0
+        fi
+
+        echo -n "none" > $(results.NEXT_ENV.path)
+        exit 0
+
+
+        
+        

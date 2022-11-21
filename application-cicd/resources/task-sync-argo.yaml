@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sync-argo
+  annotations:
+    description: |
+      Execute an argocd sync and waits until finish
+spec:
+  params:
+    - name: APP_NAME
+      description: Name of the Application to sync
+      type: string
+  steps:
+    - image: quay.io/calopezb/argo-utils:1.0.0
+      name: eval
+      script: |
+        ARGO_USER=admin
+        ARGO_URL=$(oc get route/openshift-gitops-server -o jsonpath='{.status.ingress[0].host}' -n openshift-gitops)
+        ARGO_PASS=$(oc get secret openshift-gitops-cluster -o jsonpath='{.data.admin\.password}' -n openshift-gitops | base64 -d)
+        
+        argocd login $ARGO_URL --insecure --username $ARGO_USER --password $ARGO_PASS
+        
+        argocd app sync --timeout 120 $(params.APP_NAME)
+        
+        if [ "$?" != 0 ]; then
+          echo "Error syncing application"
+          exit 1
+        fi
+        
+        exit 0

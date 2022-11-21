@@ -1,0 +1,194 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-pipeline
+  labels:
+    app.kubernetes.io/instance: ci-pipeline
+    pipeline.openshift.io/runtime: quarkus
+spec:
+  params:
+    - name: APP_NAME
+      type: string
+    - name: ENV
+      type: string
+      default: dev
+    - name: APP_REPO_URL
+      type: string
+    - name: APP_REPO_NAME
+      type: string
+    - name: APP_GIT_REVISION
+      type: string
+    - name: DEPLOY_REPO_URL
+      type: string
+    - name: DEPLOY_REPO_OWNER
+      type: string
+    - name: DEPLOY_REPO_NAME
+      type: string
+    - name: REGISTRY
+      type: string
+      default: gcr.io/my-platform
+  workspaces:
+    - name: app-source
+  tasks:
+# ------------ CLONE APP SOURCE ------------ #
+    - name: git-app-clone
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.APP_REPO_URL)
+        - name: revision
+          value: $(params.APP_GIT_REVISION)
+        - name: deleteExisting
+          value: 'true'
+        - name: subdirectory
+          value: $(params.APP_REPO_NAME)
+      workspaces:
+        - name: output
+          workspace: app-source
+# ------------ GENERATE VERSION ------------ #
+    - name: generate-version
+      runAfter:
+        - git-app-clone
+      taskRef:
+        kind: Task
+        name: generate-version
+      params:
+        - name: APP_NAME
+          value: $(params.APP_REPO_NAME)
+      workspaces:
+        - name: source
+          workspace: app-source
+# ------------ UNIT TEST ------------ #
+    - name: unit-test
+      runAfter:
+        - generate-version
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: unit-test
+# ------------ CODE ANALYSIS ------------ #
+    - name: code-analysis
+      runAfter:
+        - generate-version
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: code-analysis
+# ------------ DEPENDENCY CHECK ------------ #
+    - name: dependency-check
+      runAfter:
+        - generate-version
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: dependency-check
+# ------------ PACKAGE APP ------------ #
+    - name: package-app
+      runAfter:
+        - dependency-check
+        - code-analysis
+        - unit-test
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: package-app
+# ------------ NEXUS UPLOAD ------------ #
+    - name: nexus-upload
+      runAfter:
+        - package-app
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: nexus-upload
+# ------------ BUILD IMAGE ------------ #
+    - name: build-image
+      runAfter:
+      - nexus-upload
+      taskRef:
+        kind: ClusterTask
+        name: s2i-java
+      params:
+        - name: IMAGE
+          value: $(params.REGISTRY)/$(params.APP_NAME)
+        - name: PATH_CONTEXT
+          value: $(params.APP_REPO_NAME)
+      workspaces:
+      - name: source
+        workspace: app-source
+# ------------ IMAGE SCAN ------------ #
+    - name: image-scan
+      runAfter:
+        - build-image
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: image-scan
+# ------------ IMAGE CHECK ------------ #
+    - name: image-check
+      runAfter:
+        - build-image
+      taskRef:
+        kind: Task
+        name: mock
+      params:
+        - name: MOCK_MSG
+          value: image-check
+# ------------ TAG IMAGE ------------ #
+    - name: tag-image
+      runAfter:
+        - image-check
+        - image-scan
+      taskRef:
+        kind: Task
+        name: tag-image
+      params:
+        - name: IMAGE
+          value: sk-app-dev/$(params.APP_NAME)
+        - name: IMAGE_TAG
+          value: latest
+        - name: IMAGE_NEW_TAG
+          value: "$(tasks.generate-version.results.version)"
+# ------------ CREATE PR ------------ #
+    - name: create-pr-to-deploy
+      runAfter:
+        - tag-image
+      taskRef:
+        kind: Task
+        name: create-pr-to-deploy
+      params:
+        - name: DEPLOY_REPO_URL
+          value: $(params.DEPLOY_REPO_URL)
+        - name: DEPLOY_REPO_OWNER
+          value: $(params.DEPLOY_REPO_OWNER)
+        - name: DEPLOY_REPO_NAME
+          value: $(params.DEPLOY_REPO_NAME)
+        - name: BRANCH_NAME
+          value: $(params.ENV)-image-$(tasks.generate-version.results.version)
+        - name: IMAGE_NAME
+          value: $(params.APP_NAME)
+        - name: IMAGE_URL
+          value: $(params.REGISTRY)/$(params.APP_NAME)
+        - name: IMAGE_NEW_VERSION
+          value: $(tasks.generate-version.results.version)
+        - name: ENV
+          value: $(params.ENV)
+        - name: PR_BODY
+          value: |
+            application: $(params.APP_NAME)\nmessage: 'New image for $(params.ENV) environment'\napplicationRepo: $(params.APP_REPO_URL)\napplicationRevision: $(params.APP_GIT_REVISION)\nimage: $(params.REGISTRY)/$(params.APP_NAME)\nversion: $(tasks.generate-version.results.version)\ndeployRepo: $(params.DEPLOY_REPO_URL)\ndeployOwner: $(params.DEPLOY_REPO_OWNER)\ndeployName: $(params.DEPLOY_REPO_NAME)\nenvironment: $(params.ENV)
+      workspaces:
+        - name: source
+          workspace: app-source

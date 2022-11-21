@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: quarkus-app-environments
+spec:
+  generators:
+    - git:
+        repoURL: http://gitea.sk-sk-workshop-components.svc:3000/gitea/application-deploy.git
+        revision: master
+        files:
+          - path: "argo/configuration/*.json"
+  template:
+    metadata:
+      name: 'quarkus-app-{{ environment }}'
+    spec:
+      project: default
+      source:
+        repoURL: http://gitea.workshop-components.svc:3000/gitea/application-deploy.git
+        targetRevision: '{{ argo_config.branch }}'
+        path: 'overlays/{{ environment }}'
+      destination:
+        server: '{{ k8s_cluster.address }}'
+        namespace: '{{ k8s_cluster.namespace }}'
+      syncPolicy:
+        automated: null

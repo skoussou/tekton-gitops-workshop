@@ -1,0 +1,11 @@
+{
+  "environment": "prod",
+  "argo_config": {
+    "branch": "master"
+  },
+  "k8s_cluster": {
+    "owner": "admin@redhat.com",
+    "address": "https://kubernetes.default.svc",
+    "namespace": "sk-app-prod"
+  }
+}
