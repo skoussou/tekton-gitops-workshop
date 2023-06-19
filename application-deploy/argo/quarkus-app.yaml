@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitea.sk-workshop-components.svc:3000/gitea/application-deploy.git
+    repoURL: http://gitea.sk-workshop-components.svc.cluster.local:3000/gitea/application-deploy.git
     targetRevision: master
     path: argo/app-sets
   destination:

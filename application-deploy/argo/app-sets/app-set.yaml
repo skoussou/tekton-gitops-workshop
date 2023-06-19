@@ -5,7 +5,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: http://gitea.sk-sk-workshop-components.svc:3000/gitea/application-deploy.git
+        repoURL: http://gitea.sk-workshop-components.svc.cluster.local:3000/gitea/application-deploy.git
         revision: master
         files:
           - path: "argo/configuration/*.json"
@@ -15,7 +15,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: http://gitea.workshop-components.svc:3000/gitea/application-deploy.git
+        repoURL: http://gitea.sk-workshop-components.svc.cluster.local:3000/gitea/application-deploy.git
         targetRevision: '{{ argo_config.branch }}'
         path: 'overlays/{{ environment }}'
       destination:
