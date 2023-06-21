@@ -81,6 +81,10 @@ spec:
           value: integration-test-mock
 # ------------ TAG IMAGE ------------ #
     - name: create-release
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["test"]
       runAfter:
         - performance-test
       taskRef:
@@ -120,6 +124,10 @@ spec:
         - name: PR_BODY
           value: |
             application: $(params.APP)\nmessage: 'New image for $(tasks.get-promotion-env.results.NEXT_ENV) environment'\napplicationRepo: $(params.APP_REPO)\napplicationRevision: $(params.APP_REVISION)\nimage: $(params.IMAGE)\nversion: $(params.IMAGE_VERSION)\ndeployRepo: $(params.DEPLOY_REPO)\ndeployOwner: $(params.DEPLOY_OWNER)\ndeployName: $(params.DEPLOY_NAME)\nenvironment: $(tasks.get-promotion-env.results.NEXT_ENV)
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["dev"]
       workspaces:
         - name: source
           workspace: deploy-source
@@ -150,6 +158,10 @@ spec:
         - name: PR_BODY
           value: |
             application: $(params.APP)\nmessage: 'New image for $(tasks.get-promotion-env.results.NEXT_ENV) environment'\napplicationRepo: $(params.APP_REPO)\napplicationRevision: $(params.APP_REVISION)\nimage: $(params.IMAGE)\nversion: $(params.IMAGE_VERSION)-RELEASE\ndeployRepo: $(params.DEPLOY_REPO)\ndeployOwner: $(params.DEPLOY_OWNER)\ndeployName: $(params.DEPLOY_NAME)\nenvironment: $(tasks.get-promotion-env.results.NEXT_ENV)
+      when:
+        - input: "$(params.ENV)"
+          operator: in
+          values: ["test"]
       workspaces:
         - name: source
           workspace: deploy-source
