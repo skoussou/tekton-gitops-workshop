@@ -87,6 +87,7 @@ oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n opensh
 info "Creating application initial version"
 oc new-build  openshift/ubi8-openjdk-11:1.3~http://$GITEA_HOSTNAME/gitea/application-source --name=quarkus-app -n sk-app-dev
 oc wait --for=condition=complete build/quarkus-app-1 -n sk-app-dev
+sleep 20
 oc tag sk-app-dev/quarkus-app:latest quarkus-app:1.0.0-initial -n sk-app-dev
 oc get is -n sk-app-dev
 
@@ -94,8 +95,8 @@ info "Creating argocd application environments"
 oc apply -f application-deploy/argo/quarkus-app.yaml -n openshift-gitops
 
 oc apply -f application-cicd/resources -n $NS_CMP
-PUSH_WH=$(oc get eventlistener quarkus-app-push-listener -o jsonpath='{.status.address.url}' -n $NS_CMP) 
-PR_WH=$(oc get eventlistener quarkus-app-pr-listener -o jsonpath='{.status.address.url}' -n $NS_CMP) 
+PUSH_WH=$(oc get eventlistener quarkus-app-push-listener -o jsonpath='{.status.address.url}' -n $NS_CMP)
+PR_WH=$(oc get eventlistener quarkus-app-pr-listener -o jsonpath='{.status.address.url}' -n $NS_CMP)
 
 ##############################################################################
 # -- INSTALATION INFO --
