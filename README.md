@@ -159,6 +159,7 @@ oc delete application.argoproj.io/quarkus-app -n openshift-gitops
 
 # Delete namespaces
 oc delete project ${YOUR_NAME_INITIAL}-workshop-components
+oc delete project ${YOUR_NAME_INITIAL}-workshop-ci-components
 oc delete project ${YOUR_NAME_INITIAL}-app-dev
 oc delete project ${YOUR_NAME_INITIAL}-app-test
 oc delete project ${YOUR_NAME_INITIAL}-app-prod

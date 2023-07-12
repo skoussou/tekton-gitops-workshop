@@ -15,9 +15,10 @@ deploy_operator() # (subscription yaml file, operator name, namespace)
     while [ $LOOP == "TRUE" ]
     do
         # get the csv name
-        RESOURCE=$(oc get subscription $2 -n $3 -o template --template '{{.status.currentCSV}}')
+        #RESOURCE=$(oc get subscription $2 -n $3 -o template --template '{{.status.currentCSV}}')
+        RESOURCE=$2
         # get the status of csv 
-        RESP=$(oc get csv $RESOURCE -n $3  --no-headers 2>/dev/null)
+        #RESP=$(oc get csv $RESOURCE -n $3  --no-headers 2>/dev/null)
         RC=$(echo $?)
         STATUS=""
         if [ "$RC" -eq 0 ]
@@ -38,6 +39,7 @@ deploy_operator() # (subscription yaml file, operator name, namespace)
 ##############################################################################
 # -- ENVIRONMENT --
 NS_CMP=sk-workshop-components
+NS_CI=sk-workshop-ci-components
 NS_DEV=sk-app-dev
 NS_TEST=sk-app-test
 NS_PROD=sk-app-prod
@@ -54,6 +56,7 @@ info "Starting installation"
 
 info "Creating namespaces"
 oc new-project $NS_CMP
+oc new-project $NS_CI
 oc new-project $NS_DEV
 oc new-project $NS_TEST
 oc new-project $NS_PROD
@@ -70,14 +73,14 @@ sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" workshop-environment/gitea/setup_job.yaml | 
 oc wait --for=condition=complete job/configure-gitea --timeout=60s -n $NS_CMP
 
 info "Deploying and configuring OpenShift pipelines"
-deploy_operator workshop-environment/tekton/operator_sub.yaml openshift-pipelines-operator-rh openshift-operators
+deploy_operator workshop-environment/tekton/operator_sub.yaml openshift-pipelines-operator-rh.v1.11.0 openshift-operators
 sleep 30
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_DEV
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_TEST
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_PROD
 
 info "Deploying and configuring GitOps"
-deploy_operator workshop-environment/gitops/operator_sub.yaml openshift-gitops-operator openshift-operators
+deploy_operator workshop-environment/gitops/operator_sub.yaml openshift-gitops-operator.v1.9.0  openshift-operators
 sleep 15
 oc apply -f workshop-environment/gitops/roles.yaml
 ARGO_URL=$(oc get route openshift-gitops-server -ojsonpath='{.spec.host}' -n openshift-gitops)
@@ -94,6 +97,7 @@ oc get is -n sk-app-dev
 info "Creating argocd application environments"
 oc apply -f application-deploy/argo/quarkus-app.yaml -n openshift-gitops
 
+oc apply -f ci-environment/resources -n $NS_CI
 oc apply -f application-cicd/resources -n $NS_CMP
 PUSH_WH=$(oc get eventlistener quarkus-app-push-listener -o jsonpath='{.status.address.url}' -n $NS_CMP)
 PR_WH=$(oc get eventlistener quarkus-app-pr-listener -o jsonpath='{.status.address.url}' -n $NS_CMP)

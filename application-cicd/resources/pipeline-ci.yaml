@@ -27,14 +27,23 @@ spec:
     - name: REGISTRY
       type: string
       default: gcr.io/my-platform
+    - name: CI_NS_PREFIX
+      type: string
+      default: sk
   workspaces:
     - name: app-source
   tasks:
 # ------------ CLONE APP SOURCE ------------ #
     - name: git-app-clone
       taskRef:
-        kind: ClusterTask
-        name: git-clone
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone-custom
+          - name: namespace
+            value: $(params.CI_NS_PREFIX)-workshop-ci-components
       params:
         - name: url
           value: $(params.APP_REPO_URL)
@@ -117,8 +126,14 @@ spec:
       runAfter:
       - nexus-upload
       taskRef:
-        kind: ClusterTask
-        name: s2i-java
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: s2i-java-custom
+          - name: namespace
+            value: $(params.CI_NS_PREFIX)-workshop-ci-components
       params:
         - name: IMAGE
           value: $(params.REGISTRY)/$(params.APP_NAME)
@@ -157,7 +172,7 @@ spec:
         name: tag-image
       params:
         - name: IMAGE
-          value: sk-app-dev/$(params.APP_NAME)
+          value: $(params.CI_NS_PREFIX)-app-dev/$(params.APP_NAME)
         - name: IMAGE_TAG
           value: latest
         - name: IMAGE_NEW_TAG
