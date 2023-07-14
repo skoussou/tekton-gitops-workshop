@@ -26,7 +26,7 @@ spec:
           cd repository
 
           echo "-- Downloading workshop repository"
-          git clone https://github.com/skoussou/tekton-gitops-workshop      
+          git clone --branch pipeline-as-code https://github.com/skoussou/tekton-gitops-workshop      
 
           
           echo "-- Creating gitea user"
@@ -47,7 +47,7 @@ spec:
               exit 1
           fi
 
-          git clone http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-source
+          git clone --branch pipeline-as-code http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-source
           cp -a tekton-gitops-workshop/application-source/. application-source
           cd application-source
           git config user.email "gitea@gitea.com"
@@ -68,7 +68,7 @@ spec:
               exit 1
           fi
 
-          git clone http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-deploy
+          git clone --branch pipeline-as-code http://gitea:openshift@$GITEA_HOSTNAME/gitea/application-deploy
           cp -a tekton-gitops-workshop/application-deploy/. application-deploy
           cd application-deploy
           git config user.email "gitea@gitea.com"
