@@ -1,0 +1,249 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: application-source
+  annotations:
+    # The event we are targeting as seen from the webhook payload
+    # this can be an array too, i.e: [pull_request, push]
+    pipelinesascode.tekton.dev/on-event: "[push]"
+
+    # The branch or tag we are targeting (ie: main, refs/tags/*)
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+
+    # Fetch the git-clone task from hub, we are able to reference later on it
+    # with taskRef and it will automatically be embdded into our pipeline.
+    pipelinesascode.tekton.dev/task: "[git-clone:0.9]"
+
+    # Use s2i build java task from github item to build java container image
+    pipelinesascode.tekton.dev/task-1: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/s2i-java-custom/0.1/s2i-java.yaml"
+
+    # Use mock task from github
+    pipelinesascode.tekton.dev/task-2: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/mock/0.1/task-mock.yaml"
+    pipelinesascode.tekton.dev/task-3: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-create-pr-to-deploy/0.1/task-create-pr-to-deploy.yaml"
+    pipelinesascode.tekton.dev/task-4: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-generate-version/0.1/task-generate-version.yaml"
+    pipelinesascode.tekton.dev/task-5: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-tag-image/0.1/task-tag-image.yaml"
+
+    # You can add more tasks by increasing the suffix number, you can specify
+    # them as array to have multiple of them.
+    # browse the tasks you want to include from hub on https://hub.tekton.dev/
+    #
+    # pipelinesascode.tekton.dev/task-2: "[curl, buildah]"
+
+    # How many runs we want to keep attached to this event
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+
+    # Executes only for specific paths
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" && ".".pathChanged() 
+
+spec:
+  params:
+    # The variable with brackets are special to Pipelines as Code
+    # They will automatically be expanded with the events from Github.
+    - name: APP_NAME
+      value: quarkus-app
+    - name: ENV
+      value: string
+      default: dev
+    - name: APP_REPO_URL
+      value: "{{ repo_url }}"
+    - name: APP_REPO_NAME
+      value: string
+    - name: APP_GIT_REVISION
+      value: "{{ revision }}"
+    - name: DEPLOY_REPO_URL
+      value: http://gitea.sk-workshop-components.svc:3000
+    - name: DEPLOY_REPO_OWNER
+      value: gitea
+    - name: DEPLOY_REPO_NAME
+      value: application-deploy
+    - name: REGISTRY
+      value: image-registry.openshift-image-registry.svc:5000/sk-app-dev
+    - name: CI_NS_PREFIX
+      type: string
+      default: sk      
+  pipelineSpec:
+    params:
+      - name: APP_NAME
+      - name: ENV
+      - name: APP_REPO_URL
+      - name: APP_REPO_NAME
+      - name: APP_GIT_REVISION
+      - name: DEPLOY_REPO_URL
+      - name: DEPLOY_REPO_OWNER
+      - name: DEPLOY_REPO_NAME
+      - name: REGISTRY
+      - name: CI_NS_PREFIX
+    workspaces:
+      - name: app-source
+    tasks:
+      # ------------ CLONE APP SOURCE ------------ #
+      - name: git-app-clone
+        taskRef:
+          name: git-clone
+        params:
+          - name: url
+            value: $(params.APP_REPO_URL)
+          - name: revision
+            value: $(params.APP_GIT_REVISION)
+          - name: deleteExisting
+            value: 'true'
+          - name: subdirectory
+            value: $(params.APP_REPO_NAME)
+        workspaces:
+          - name: output
+            workspace: app-source
+      # ------------ GENERATE VERSION ------------ #
+      - name: generate-version
+        runAfter:
+          - git-app-clone
+        taskRef:
+          kind: Task
+          name: generate-version
+        params:
+          - name: APP_NAME
+            value: $(params.APP_REPO_NAME)
+        workspaces:
+          - name: source
+            workspace: app-source
+      # ------------ UNIT TEST ------------ #
+      - name: unit-test
+        runAfter:
+          - generate-version
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: unit-test
+      # ------------ CODE ANALYSIS ------------ #
+      - name: code-analysis
+        runAfter:
+          - generate-version
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: code-analysis
+      # ------------ DEPENDENCY CHECK ------------ #
+      - name: dependency-check
+        runAfter:
+          - generate-version
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: dependency-check
+      # ------------ PACKAGE APP ------------ #
+      - name: package-app
+        runAfter:
+          - dependency-check
+          - code-analysis
+          - unit-test
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: package-app
+      # ------------ NEXUS UPLOAD ------------ #
+      - name: nexus-upload
+        runAfter:
+          - package-app
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: nexus-upload
+      # ------------ BUILD IMAGE ------------ #
+      - name: build-image
+        runAfter:
+          - nexus-upload
+        taskRef:
+          task: s2i-java-custom
+          params:
+            - name: url
+              value: https://github.com/skoussou/tekton-catalog.git
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: ci-tasks/resources/s2i-java-custom/0.1/s2i-java.yaml
+        params:
+          - name: IMAGE
+            value: $(params.REGISTRY)/$(params.APP_NAME)
+          - name: PATH_CONTEXT
+            value: $(params.APP_REPO_NAME)
+        workspaces:
+          - name: source
+            workspace: app-source
+      # ------------ IMAGE SCAN ------------ #
+      - name: image-scan
+        runAfter:
+          - build-image
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: image-scan
+      # ------------ IMAGE CHECK ------------ #
+      - name: image-check
+        runAfter:
+          - build-image
+        taskRef:
+          kind: Task
+          name: mock
+        params:
+          - name: MOCK_MSG
+            value: image-check
+      # ------------ TAG IMAGE ------------ #
+      - name: tag-image
+        runAfter:
+          - image-check
+          - image-scan
+        taskRef:
+          kind: Task
+          name: tag-image
+        params:
+          - name: IMAGE
+            value: $(params.CI_NS_PREFIX)-app-dev/$(params.APP_NAME)
+          - name: IMAGE_TAG
+            value: latest
+          - name: IMAGE_NEW_TAG
+            value: "$(tasks.generate-version.results.version)"
+      # ------------ CREATE PR ------------ #
+      - name: create-pr-to-deploy
+        runAfter:
+          - tag-image
+        taskRef:
+          kind: Task
+          name: create-pr-to-deploy
+        params:
+          - name: DEPLOY_REPO_URL
+            value: $(params.DEPLOY_REPO_URL)
+          - name: DEPLOY_REPO_OWNER
+            value: $(params.DEPLOY_REPO_OWNER)
+          - name: DEPLOY_REPO_NAME
+            value: $(params.DEPLOY_REPO_NAME)
+          - name: BRANCH_NAME
+            value: $(params.ENV)-image-$(tasks.generate-version.results.version)
+          - name: IMAGE_NAME
+            value: $(params.APP_NAME)
+          - name: IMAGE_URL
+            value: $(params.REGISTRY)/$(params.APP_NAME)
+          - name: IMAGE_NEW_VERSION
+            value: $(tasks.generate-version.results.version)
+          - name: ENV
+            value: $(params.ENV)
+          - name: PR_BODY
+            value: |
+              application: $(params.APP_NAME)\nmessage: 'New image for $(params.ENV) environment'\napplicationRepo: $(params.APP_REPO_URL)\napplicationRevision: $(params.APP_GIT_REVISION)\nimage: $(params.REGISTRY)/$(params.APP_NAME)\nversion: $(tasks.generate-version.results.version)\ndeployRepo: $(params.DEPLOY_REPO_URL)\ndeployOwner: $(params.DEPLOY_REPO_OWNER)\ndeployName: $(params.DEPLOY_REPO_NAME)\nenvironment: $(params.ENV)
+  workspaces:
+    - name: source
+      workspace: app-source
+      persistentVolumeClaim:
+        claimName: "source-pvc"
