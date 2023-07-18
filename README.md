@@ -79,7 +79,7 @@ Login into ArgoCD and manually sync applications.
 * [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
     * **Note:** This will take place in the forked repository above
       ```BASH
-      $ oc project opnehisft-pipelines
+      $ oc project openshift-pipelines
       $ tkn pac bootstrap
           => Checking if Pipelines as Code is installed.
           ✓ Pipelines as Code is already installed.
