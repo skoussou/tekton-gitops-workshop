@@ -36,8 +36,12 @@ deploy_operator() # (subscription yaml file, operator name, namespace)
 }
 #-----------------------------------------------------------------------------
 
+
 ##############################################################################
 # -- ENVIRONMENT --
+CSV_GITOPS=openshift-gitops-operator.v1.9.1
+CSV_PIPELINES=openshift-pipelines-operator-rh.v1.11.0
+
 NS_CMP=sk-workshop-components
 NS_DEV=sk-app-dev
 NS_TEST=sk-app-test

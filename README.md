@@ -9,14 +9,18 @@ Tekton pipelines workshop
 
 ## Installation
 
-Open a terminal abd login into OpenShift using an user with admin rights.
+Open a terminal and login into OpenShift using an user with admin rights.
 
-Execute `install.sh` script. The final output contains the demo installation information. Example:
+1. Configure in `install.sh`
+    * `CSV_GITOPS`: csv version for OCP GitOps operator
+    * `CSV_PIPELINES`: csv version for OCP Pipelines operator
+
+2. Execute `install.sh` script. The final output contains the demo installation information. Example:
 
 ```
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-INSTALATIO COMPLETED!!
+INSTALATION COMPLETED!!
 
 OPENSHIFT NAMESPACES:
   - components: ${YOUR_NAME_INITIAL}-workshop-components
@@ -200,7 +204,7 @@ spec:
         DATE=$(date)
         echo $DATE > $(results.MESSAGE_DATE.path)
         echo $DATE
-EOF
+  EOF
 ```
 
 Create and test the task:
@@ -243,7 +247,7 @@ spec:
       params:
         - name: MESSAGE
           value: "$(tasks.task-1.results.MESSAGE_DATE)"
-EOF
+  EOF
 ```
 
 Create and test the pipeline:
