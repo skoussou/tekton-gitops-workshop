@@ -58,8 +58,8 @@ How to:
 Open a terminal abd login into OpenShift using and user with admin rights.
 
 1. Configure in `install.sh`
-   * CSV_GITOPS: csv version for OCP GitOps operator
-   * CSV_PIPELINES: csv version for OCP Pipelines operator
+   * `CSV_GITOPS`: csv version for OCP GitOps operator
+   * `CSV_PIPELINES`: csv version for OCP Pipelines operator
 
 2. Execute `install.sh` script. The final output contains the demo installation information. Example:
 
@@ -128,7 +128,7 @@ PROD_URL=$(oc get route quarkus-app -n ${YOUR_NAME_INITIAL}-app-prod -o jsonpath
 curl http://$PROD_URL/app/info
 ```
 
-Open `application-source` repository (*NOTE: Your forked version*) and modify the application `pom.xml` version:
+Open `application-source` repository (*_NOTE: Your forked github `application-source` repo_*) and modify the application `pom.xml` version:
 
 ```xml
 <version>1.0.1</version>
