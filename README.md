@@ -94,7 +94,7 @@ Login into ArgoCD and manually sync applications.
           
           💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
       ```
-    * Add the Github App to the forked repository
+    * Add the Github App to the forked repository (Your settings -> Developer Settings -> Edit (`test-pipeline-as-code`) -> Install (to your user/org) -> Select your forked `application-source` repo)
       ![image](images/pipeline-as-code-github-app.png)
 
 * [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
