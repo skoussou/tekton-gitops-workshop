@@ -12,7 +12,7 @@ Tekton pipelines workshop
 
 How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
-* Follow the normal *Installation* via the `install.sh` script below along with a new section for `Pipeline-as-code Setup`
+* Follow the normal *Installation* via the `install.sh` script below along with a new section for [Pipeline-as-code Setup](README.md#pipeline-as-code-setup)
 
 ## Prerequisites
 
