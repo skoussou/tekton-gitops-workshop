@@ -12,7 +12,7 @@ Tekton pipelines workshop
 
 How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
-* Follow the normal `install.sh` script below
+* Follow the normal *Installation* via the `install.sh` script below
 * [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
   * *Note:* This will take place in the forked repository above
     ```BASH
@@ -37,15 +37,15 @@ How to:
 * [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
 
     ```BASH
-    tkn pac create repository
-    ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
-    ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
-    ! Namespace test-pipeline-as-code is not found
-    ? Would you like me to create the namespace test-pipeline-as-code? Yes
-    ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
-    ℹ Directory .tekton has been created.
-    ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
-    ℹ You can test your pipeline by pushing generated template to your git repository
+    $ tkn pac create repository
+      ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
+      ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
+      ! Namespace test-pipeline-as-code is not found
+      ? Would you like me to create the namespace test-pipeline-as-code? Yes
+      ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
+      ℹ Directory .tekton has been created.
+      ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
+      ℹ You can test your pipeline by pushing generated template to your git repository
     ```
 
 ## Prerequisites
