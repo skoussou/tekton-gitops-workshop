@@ -2,6 +2,46 @@
 
 Tekton pipelines workshop
 
+>IMPORTANT: This branch utilizes `pipeline-as-code` functionality to build the app and for the image creation of `application-source`. As the original [main branch](https://github.com/skoussou/tekton-gitops-workshop/tree/main) of this repository uses gitea to make the `application-source` available to the pipelines and it will now contain the `pipelinerun.yaml` and connected via Github App we will have to make it available on Github as it is a supported [Pipeline as Code GIT Repository hosting provider](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-a-git-repository-hosting-service-provider).
+
+How to:
+* Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
+
+  ![image](images/pipeline-as-code-github-app.png)
+
+* Follow the normal `install.sh` script below
+* [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (unique name)
+  * *Note:* This will take place in the forked repository above
+    ```BASH
+    $ tkn pac bootstrap
+    => Checking if Pipelines as Code is installed.
+    ✓ Pipelines as Code is already installed.
+    ? Enter the name of your GitHub application:  test-ppln-as-code
+    👀 I have detected an OpenShift Route on: https://pipelines-as-code-controller-openshift-pipelines.apps.cluster-q6vlz.q6vlz.sandbox1387.opentlc.com
+    ? Do you want me to use it? Yes
+    🌍 Starting a web browser on http://localhost:8080, click on the button to create your GitHub APP
+    🔑 Secret pipelines-as-code-secret has been created in the openshift-pipelines namespace
+    🚀 You can now add your newly created application on your repository by going to this URL:
+    
+    https://github.com/apps/test-ppln-as-code
+    
+    💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
+    ```
+
+* [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
+
+    ```BASH
+    tkn pac create repository
+    ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
+    ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
+    ! Namespace test-pipeline-as-code is not found
+    ? Would you like me to create the namespace test-pipeline-as-code? Yes
+    ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
+    ℹ Directory .tekton has been created.
+    ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
+    ℹ You can test your pipeline by pushing generated template to your git repository
+    ```
+
 ## Prerequisites
 
 - oc client.
@@ -9,7 +49,7 @@ Tekton pipelines workshop
 
 ## Installation
 
-Open a terminal abd login into OpenShift using an user with admin rights.
+Open a terminal abd login into OpenShift using and user with admin rights.
 
 Execute `install.sh` script. The final output contains the demo installation information. Example:
 
@@ -43,15 +83,7 @@ PIPELINES:
 
 Configure gitea webhooks for application push events in master branch (using installation information values):
 
-- Open **GITEA url** and login.
-- Open `application-source`
-- Create a webhook in `Settings > Webhooks > Add Webhook`
-- Target URL must be **PIPELINES push webhook**
-- HTTP Method must be `POST`
-- POST Content Type must be `application/json`
-- Secret can be any value
-- Trigger On `Push Events`
-- Branch filter must be `master`
+- N/A due to [*_pipeline-as-code_*](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html) functionality use
 
 Configure gitea webhooks for deploy pull request events (using installation information values):
 
@@ -86,7 +118,7 @@ PROD_URL=$(oc get route quarkus-app -n ${YOUR_NAME_INITIAL}-app-prod -o jsonpath
 curl http://$PROD_URL/app/info
 ```
 
-Open `application-source` repository and modify the application `pom.xml` version:
+Open `application-source` repository (*NOTE: Your forked version*) and modify the application `pom.xml` version:
 
 ```xml
 <version>1.0.1</version>

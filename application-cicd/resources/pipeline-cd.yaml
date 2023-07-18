@@ -60,7 +60,13 @@ spec:
         - get-promotion-env
       taskRef:
         kind: Task
-        name: mock
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/mock/0.1/task-mock.yaml
       params:
         - name: MOCK_MSG
           value: integration-test-mock
@@ -75,7 +81,13 @@ spec:
         - get-promotion-env
       taskRef:
         kind: Task
-        name: mock
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/mock/0.1/task-mock.yaml
       params:
         - name: MOCK_MSG
           value: integration-test-mock
@@ -89,7 +101,14 @@ spec:
         - performance-test
       taskRef:
         kind: Task
-        name: tag-image
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/task-tag-image/0.1/task-tag-image.yaml
+        resolver: git
       params:
         - name: IMAGE
           value: sk-app-dev/$(params.APP)
@@ -103,7 +122,14 @@ spec:
         - integration-test
       taskRef:
         kind: Task
-        name: create-pr-to-deploy
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/task-create-pr-to-deploy/0.1/task-create-pr-to-deploy.yaml
+        resolver: git
       params:
         - name: DEPLOY_REPO_URL
           value: $(params.DEPLOY_REPO)
@@ -137,7 +163,14 @@ spec:
         - create-release
       taskRef:
         kind: Task
-        name: create-pr-to-deploy
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/task-create-pr-to-deploy/0.1/task-create-pr-to-deploy.yaml
+        resolver: git
       params:
         - name: DEPLOY_REPO_URL
           value: $(params.DEPLOY_REPO)
@@ -173,7 +206,13 @@ spec:
           values: ["prod"]
       taskRef:
         kind: Task
-        name: mock
+        params:
+          - name: url
+            value: 'https://github.com/skoussou/tekton-catalog.git'
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: ci-tasks/resources/mock/0.1/task-mock.yaml
       params:
         - name: MOCK_MSG
           value: notify-prod
