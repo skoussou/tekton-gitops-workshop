@@ -101,11 +101,9 @@ Login into ArgoCD and manually sync applications.
 
     ```BASH
     $ tkn pac create repository
-      ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
-      ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
-      ! Namespace test-pipeline-as-code is not found
-      ? Would you like me to create the namespace test-pipeline-as-code? Yes
-      ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
+      ? Enter the Git repository url (default: https://github.com/skoussou/tekton-gitops-workshop):  https://github.com/skoussou/application-source
+      ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): sk-workshop-components
+      ✓ Repository skoussou-application-source has been created in sk-workshop-components namespace
       ℹ Directory .tekton has been created.
       ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
       ℹ You can test your pipeline by pushing generated template to your git repository
