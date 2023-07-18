@@ -14,7 +14,7 @@ How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
 * Follow the normal *Installation* via the `install.sh` script below
 * [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
-  * *Note:* This will take place in the forked repository above
+  * **Note:** This will take place in the forked repository above
     ```BASH
     $ oc project opnehisft-pipelines
     $ tkn pac bootstrap
@@ -128,7 +128,7 @@ PROD_URL=$(oc get route quarkus-app -n ${YOUR_NAME_INITIAL}-app-prod -o jsonpath
 curl http://$PROD_URL/app/info
 ```
 
-Open `application-source` repository (*_NOTE: Your forked github `application-source` repo_*) and modify the application `pom.xml` version:
+Open `application-source` repository (**NOTE: Your forked github `application-source` repo_**) and modify the application `pom.xml` version:
 
 ```xml
 <version>1.0.1</version>
