@@ -2,7 +2,8 @@
 
 Tekton pipelines workshop
 
->IMPORTANT: This branch utilizes `pipeline-as-code` functionality to build the app and for the image creation of `application-source`. As the original [main branch](https://github.com/skoussou/tekton-gitops-workshop/tree/main) of this repository uses gitea to make the `application-source` available to the pipelines and it will now contain the `pipelinerun.yaml` and connected via Github App we will have to make it available on Github as it is a supported [Pipeline as Code GIT Repository hosting provider](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-a-git-repository-hosting-service-provider).
+>IMPORTANT: This branch utilizes [`pipeline-as-code`](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html) functionality to build the application and an image for it from sourecode directory in [`application-source`](.application-source)). F
+> For that purpose we have added in [application-source/.tekton](application-source/.tekton) the [pipelinerun.yaml](application-source/.tekton/pipelinerun.yaml) but as the original [main branch](https://github.com/skoussou/tekton-gitops-workshop/tree/main) of this repository uses gitea to make the `application-source` available to the pipelines which is not a supported pipeline-as-code GIT Provider therefore you will need to make it available on Github as it is a supported [Pipeline as Code GIT Repository hosting provider](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-a-git-repository-hosting-service-provider) in order to connect the `application-source` via Github.
 
 How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
