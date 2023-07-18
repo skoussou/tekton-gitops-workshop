@@ -57,7 +57,11 @@ How to:
 
 Open a terminal abd login into OpenShift using and user with admin rights.
 
-Execute `install.sh` script. The final output contains the demo installation information. Example:
+1. Configure in `install.sh`
+   CSV_GITOPS: csv version for OCP GitOps operator
+   CSV_PIPELINES: csv version for OCP Pipelines operator
+
+2. Execute `install.sh` script. The final output contains the demo installation information. Example:
 
 ```
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -81,7 +85,7 @@ ARGO:
   - password: iDcS0auoFe5ZE4G3NMpbQvRX7CJgxYPw
 
 PIPELINES:
-  - push webhook: http://el-quarkus-app-push-listener.${YOUR_NAME_INITIAL}-workshop-components.svc.cluster.local:8080
+  - push webhook: N/A due to pipeline-as-code functionality
   - pull request webhook: http://el-quarkus-app-pr-listener.${YOUR_NAME_INITIAL}-workshop-components.svc.cluster.local:8080
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
