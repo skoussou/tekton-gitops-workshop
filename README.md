@@ -12,41 +12,7 @@ Tekton pipelines workshop
 
 How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
-* Follow the normal *Installation* via the `install.sh` script below
-* [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
-  * **Note:** This will take place in the forked repository above
-    ```BASH
-    $ oc project opnehisft-pipelines
-    $ tkn pac bootstrap
-        => Checking if Pipelines as Code is installed.
-        ✓ Pipelines as Code is already installed.
-        ? Enter the name of your GitHub application:  test-ppln-as-code
-        👀 I have detected an OpenShift Route on: https://pipelines-as-code-controller-openshift-pipelines.apps.cluster-q6vlz.q6vlz.sandbox1387.opentlc.com
-        ? Do you want me to use it? Yes
-        🌍 Starting a web browser on http://localhost:8080, click on the button to create your GitHub APP
-        🔑 Secret pipelines-as-code-secret has been created in the openshift-pipelines namespace
-        🚀 You can now add your newly created application on your repository by going to this URL:
-        
-        https://github.com/apps/test-ppln-as-code
-        
-        💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
-    ```
-  * Add the Github App to the forked repository
-    ![image](images/pipeline-as-code-github-app.png)
-
-* [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
-
-    ```BASH
-    $ tkn pac create repository
-      ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
-      ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
-      ! Namespace test-pipeline-as-code is not found
-      ? Would you like me to create the namespace test-pipeline-as-code? Yes
-      ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
-      ℹ Directory .tekton has been created.
-      ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
-      ℹ You can test your pipeline by pushing generated template to your git repository
-    ```
+* Follow the normal *Installation* via the `install.sh` script below along with a new section for `Pipeline-as-code Setup`
 
 ## Prerequisites
 
@@ -108,6 +74,43 @@ Configure gitea webhooks for deploy pull request events (using installation info
 
 Login into ArgoCD and manually sync applications.
 
+### Pipeline-as-code Setup
+
+* [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
+    * **Note:** This will take place in the forked repository above
+      ```BASH
+      $ oc project opnehisft-pipelines
+      $ tkn pac bootstrap
+          => Checking if Pipelines as Code is installed.
+          ✓ Pipelines as Code is already installed.
+          ? Enter the name of your GitHub application:  test-ppln-as-code
+          👀 I have detected an OpenShift Route on: https://pipelines-as-code-controller-openshift-pipelines.apps.cluster-q6vlz.q6vlz.sandbox1387.opentlc.com
+          ? Do you want me to use it? Yes
+          🌍 Starting a web browser on http://localhost:8080, click on the button to create your GitHub APP
+          🔑 Secret pipelines-as-code-secret has been created in the openshift-pipelines namespace
+          🚀 You can now add your newly created application on your repository by going to this URL:
+          
+          https://github.com/apps/test-ppln-as-code
+          
+          💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
+      ```
+    * Add the Github App to the forked repository
+      ![image](images/pipeline-as-code-github-app.png)
+
+* [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
+
+    ```BASH
+    $ tkn pac create repository
+      ? Enter the Git repository url :  https://github.com/skoussou/quarkus-observability-app.git
+      ? Please enter the namespace where the pipeline should run (default: openshift-pipelines): test-pipeline-as-code
+      ! Namespace test-pipeline-as-code is not found
+      ? Would you like me to create the namespace test-pipeline-as-code? Yes
+      ✓ Repository skoussou-quarkus-observability-app.git has been created in test-pipeline-as-code namespace
+      ℹ Directory .tekton has been created.
+      ✓ A basic template has been created in .tekton/pipelinerun.yaml, feel free to customize it.
+      ℹ You can test your pipeline by pushing generated template to your git repository
+    ```
+
 ## CICD Demo
 
 > NOTE: Some of the following pipeline tasks are a mock and will be completed later on.
@@ -128,7 +131,7 @@ PROD_URL=$(oc get route quarkus-app -n ${YOUR_NAME_INITIAL}-app-prod -o jsonpath
 curl http://$PROD_URL/app/info
 ```
 
-Open `application-source` repository (**NOTE: Your forked github `application-source` repo_**) and modify the application `pom.xml` version:
+Open `application-source` repository (**NOTE: Your forked github `application-source` repo**) and modify the application `pom.xml` version:
 
 ```xml
 <version>1.0.1</version>
