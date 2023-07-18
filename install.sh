@@ -75,14 +75,14 @@ sed "s/@HOSTNAME/$GITEA_HOSTNAME/g" workshop-environment/gitea/setup_job.yaml | 
 oc wait --for=condition=complete job/configure-gitea --timeout=60s -n $NS_CMP
 
 info "Deploying and configuring OpenShift pipelines"
-deploy_operator workshop-environment/tekton/operator_sub.yaml openshift-pipelines-operator-rh.v1.11.0 openshift-operators
+deploy_operator workshop-environment/tekton/operator_sub.yaml ${CSV_PIPELINES} openshift-operators
 sleep 30
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_DEV
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_TEST
 oc policy add-role-to-user edit system:serviceaccount:$NS_CMP:pipeline -n $NS_PROD
 
 info "Deploying and configuring GitOps"
-deploy_operator workshop-environment/gitops/operator_sub.yaml openshift-gitops-operator.v1.9.0  openshift-operators
+deploy_operator workshop-environment/gitops/operator_sub.yaml ${CSV_GITOPS}  openshift-operators
 sleep 15
 oc apply -f workshop-environment/gitops/roles.yaml
 ARGO_URL=$(oc get route openshift-gitops-server -ojsonpath='{.spec.host}' -n openshift-gitops)
