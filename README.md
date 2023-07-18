@@ -58,8 +58,8 @@ How to:
 Open a terminal abd login into OpenShift using and user with admin rights.
 
 1. Configure in `install.sh`
-   CSV_GITOPS: csv version for OCP GitOps operator
-   CSV_PIPELINES: csv version for OCP Pipelines operator
+   * CSV_GITOPS: csv version for OCP GitOps operator
+   * CSV_PIPELINES: csv version for OCP Pipelines operator
 
 2. Execute `install.sh` script. The final output contains the demo installation information. Example:
 
