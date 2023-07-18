@@ -12,27 +12,27 @@ Tekton pipelines workshop
 
 How to:
 * Fork [application-source](https://github.com/skoussou/application-source) into your Github user/org
-
-  ![image](images/pipeline-as-code-github-app.png)
-
 * Follow the normal `install.sh` script below
-* [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (unique name)
+* [Create and configure a Github App](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#configuring-github-app-for-pac) for your OCP server's `pipeline-as-code` usage (use a unique Github App name)
   * *Note:* This will take place in the forked repository above
     ```BASH
+    $ oc project opnehisft-pipelines
     $ tkn pac bootstrap
-    => Checking if Pipelines as Code is installed.
-    ✓ Pipelines as Code is already installed.
-    ? Enter the name of your GitHub application:  test-ppln-as-code
-    👀 I have detected an OpenShift Route on: https://pipelines-as-code-controller-openshift-pipelines.apps.cluster-q6vlz.q6vlz.sandbox1387.opentlc.com
-    ? Do you want me to use it? Yes
-    🌍 Starting a web browser on http://localhost:8080, click on the button to create your GitHub APP
-    🔑 Secret pipelines-as-code-secret has been created in the openshift-pipelines namespace
-    🚀 You can now add your newly created application on your repository by going to this URL:
-    
-    https://github.com/apps/test-ppln-as-code
-    
-    💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
+        => Checking if Pipelines as Code is installed.
+        ✓ Pipelines as Code is already installed.
+        ? Enter the name of your GitHub application:  test-ppln-as-code
+        👀 I have detected an OpenShift Route on: https://pipelines-as-code-controller-openshift-pipelines.apps.cluster-q6vlz.q6vlz.sandbox1387.opentlc.com
+        ? Do you want me to use it? Yes
+        🌍 Starting a web browser on http://localhost:8080, click on the button to create your GitHub APP
+        🔑 Secret pipelines-as-code-secret has been created in the openshift-pipelines namespace
+        🚀 You can now add your newly created application on your repository by going to this URL:
+        
+        https://github.com/apps/test-ppln-as-code
+        
+        💡 Don't forget to run the "tkn pac create repo" to create a new Repository CRD on your cluster.
     ```
+  * Add the Github App to the forked repository
+    ![image](images/pipeline-as-code-github-app.png)
 
 * [Add the webhook](https://docs.openshift.com/container-platform/4.13/cicd/pipelines/using-pipelines-as-code.html#using-pipelines-as-code-with-github-webhook_using-pipelines-as-code) for the pipeline as code
 
