@@ -109,6 +109,11 @@ Login into ArgoCD and manually sync applications.
       ℹ You can test your pipeline by pushing generated template to your git repository
     ```
 
+* Last notes
+  * the [pipelinerun.yaml](application-source/.tekton/pipelinerun.yaml) dictates that `pipeline-as-code` will only run 
+    * after a change on pom.xml has occurred and pushed
+    * on branch `main` 
+
 ## CICD Demo
 
 > NOTE: Some of the following pipeline tasks are a mock and will be completed later on.
