@@ -43,14 +43,14 @@ spec:
       type: string
   steps:
     - name: download-deploy
-      image: quay.io/calopezb/git-utils:1.0.0
+      image: quay.io/skoussou/git-utils:1.0.0
       workingDir: $(workspaces.source.path)
       script: |
         rm -rf $(params.DEPLOY_REPO_NAME)
         git clone $(params.DEPLOY_REPO_URL)/$(params.DEPLOY_REPO_OWNER)/$(params.DEPLOY_REPO_NAME)
 
     - name: create-branch
-      image: quay.io/calopezb/git-utils:1.0.0
+      image: quay.io/skoussou/git-utils:1.0.0
       workingDir: $(workspaces.source.path)
       script: |
         ls
@@ -65,7 +65,7 @@ spec:
         /app/kustomize edit set image $(params.IMAGE_NAME)=$(params.IMAGE_URL):$(params.IMAGE_NEW_VERSION)        
 
     - name: create-pr
-      image: quay.io/calopezb/git-utils:1.0.0
+      image: quay.io/skoussou/git-utils:1.0.0
       workingDir: $(workspaces.source.path)
       env:
         - name: PR_BODY
