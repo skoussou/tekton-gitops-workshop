@@ -1,0 +1,120 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-pr-to-deploy
+  annotations:
+    description: |
+      Updates a deploy image version in a specific environment
+spec:
+  stepTemplate:
+    env:
+      - name: "HOME"
+        value: "/tekton/home"
+  workspaces:
+    - name: source
+      description: The workspace where cicd repo will be modified.
+  params:
+    - name: DEPLOY_REPO_URL
+      description: Deployment resources repo url
+      type: string
+    - name: DEPLOY_REPO_OWNER
+      description: Deployment resources repo owner
+      type: string
+    - name: DEPLOY_REPO_NAME
+      description: Deployment resources repo name
+      type: string
+    - name: BRANCH_NAME
+      description: Branch name for deploy version update
+      type: string
+    - name: IMAGE_NAME
+      description: Image name in deploy repository
+      type: string
+    - name: IMAGE_URL
+      description: Image registry url (without version)
+      type: string
+    - name: IMAGE_NEW_VERSION
+      description: Image new version
+      type: string
+    - name: ENV
+      description: Environment that must be updated
+      type: string
+    - name: PR_BODY
+      description: Pull request body
+      type: string
+  steps:
+    - name: download-deploy
+      image: quay.io/calopezb/git-utils:1.0.0
+      workingDir: $(workspaces.source.path)
+      script: |
+        rm -rf $(params.DEPLOY_REPO_NAME)
+        git clone $(params.DEPLOY_REPO_URL)/$(params.DEPLOY_REPO_OWNER)/$(params.DEPLOY_REPO_NAME)
+
+    - name: create-branch
+      image: quay.io/calopezb/git-utils:1.0.0
+      workingDir: $(workspaces.source.path)
+      script: |
+        ls
+        cd $(params.DEPLOY_REPO_NAME)
+        git checkout -b $(params.BRANCH_NAME)
+
+    - name: update-image-version
+      image: k8s.gcr.io/kustomize/kustomize:v3.8.7
+      workingDir: $(workspaces.source.path)
+      script: |
+        cd $(params.DEPLOY_REPO_NAME)/overlays/$(params.ENV)
+        /app/kustomize edit set image $(params.IMAGE_NAME)=$(params.IMAGE_URL):$(params.IMAGE_NEW_VERSION)        
+
+    - name: create-pr
+      image: quay.io/calopezb/git-utils:1.0.0
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: PR_BODY
+          value: $(params.PR_BODY)
+      script: |
+        cd $(params.DEPLOY_REPO_NAME)
+
+        git config user.email "tekton@redhat.com"
+        git config user.name "tekton"
+
+        git status
+        git add overlays/$(params.ENV)/kustomization.yaml
+        git commit -m "Updated $(params.ENV) image to: $(params.IMAGE_URL):$(params.IMAGE_NEW_VERSION)."
+
+        git remote add auth-origin $(echo $(params.DEPLOY_REPO_URL)/$(params.DEPLOY_REPO_OWNER)/$(params.DEPLOY_REPO_NAME) | sed -E "s#http://(.*)#http://gitea:openshift@\1#g")
+        git push auth-origin $(params.BRANCH_NAME)
+
+        RESULT_SHA="$(git rev-parse HEAD | tr -d '\n')"
+        EXIT_CODE="$?"
+        if [ "$EXIT_CODE" != 0 ]
+        then
+          exit $EXIT_CODE
+        fi
+
+        # Create pr body
+        cat <<EOF > /tmp/pr.json
+        {
+          "base": "master",
+          "head": "$(params.BRANCH_NAME)",
+          "title": "$(params.ENV) update: $(params.IMAGE_NEW_VERSION)",
+          "body": "${PR_BODY}"
+        }
+        EOF
+        cat /tmp/pr.json
+
+        RESPONSE=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST \
+          -u gitea:openshift \
+          -d @/tmp/pr.json \
+          -H "Content-Type: application/json" \
+          $(params.DEPLOY_REPO_URL)/api/v1/repos/$(params.DEPLOY_REPO_OWNER)/$(params.DEPLOY_REPO_NAME)/pulls)
+
+        if [ "$RESPONSE" != "201" ]; then
+          echo "Error creating pull request, error code: $RESPONSE"
+          exit 1
+        fi
+
+
+
+
+
+
+

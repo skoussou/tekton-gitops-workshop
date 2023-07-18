@@ -2,43 +2,49 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: application-source
+  name: quarkus-app
   annotations:
     # The event we are targeting as seen from the webhook payload
     # this can be an array too, i.e: [pull_request, push]
-    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-event: "[pull_request, push]"
 
     # The branch or tag we are targeting (ie: main, refs/tags/*)
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
 
     # Fetch the git-clone task from hub, we are able to reference later on it
-    # with taskRef and it will automatically be embdded into our pipeline.
-    pipelinesascode.tekton.dev/task: "[git-clone:0.9]"
+    # with taskRef and it will automatically be embedded into our pipeline.
+    #pipelinesascode.tekton.dev/task: "git-clone"
+    pipelinesascode.tekton.dev/task: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/git-clone-custom/0.1/git-clone.yaml"
 
-    # Use s2i build java task from github item to build java container image
-    pipelinesascode.tekton.dev/task-1: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/s2i-java-custom/0.1/s2i-java.yaml"
-
-    # Use mock task from github
-    pipelinesascode.tekton.dev/task-2: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/mock/0.1/task-mock.yaml"
-    pipelinesascode.tekton.dev/task-3: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-create-pr-to-deploy/0.1/task-create-pr-to-deploy.yaml"
-    pipelinesascode.tekton.dev/task-4: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-generate-version/0.1/task-generate-version.yaml"
-    pipelinesascode.tekton.dev/task-5: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-tag-image/0.1/task-tag-image.yaml"
-
+    # Use maven task from the hub to test our Java project
+    pipelinesascode.tekton.dev/task-1: "maven"
+   
     # You can add more tasks by increasing the suffix number, you can specify
     # them as array to have multiple of them.
     # browse the tasks you want to include from hub on https://hub.tekton.dev/
     #
     # pipelinesascode.tekton.dev/task-2: "[curl, buildah]"
+    pipelinesascode.tekton.dev/task-2: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-generate-version/0.1/task-generate-version.yaml"
+    pipelinesascode.tekton.dev/task-3: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/mock/0.1/task-mock.yaml"    
+    pipelinesascode.tekton.dev/task-4: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/s2i-java-custom/0.1/s2i-java.yaml"    
+    pipelinesascode.tekton.dev/task-5: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-tag-image/0.1/task-tag-image.yaml"    
+    pipelinesascode.tekton.dev/task-6: "https://github.com/skoussou/tekton-catalog/blob/main/ci-tasks/resources/task-create-pr-to-deploy/0.1/task-create-pr-to-deploy.yaml"        
 
     # How many runs we want to keep attached to this event
     pipelinesascode.tekton.dev/max-keep-runs: "5"
 
     # Executes only for specific paths
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "push" && ".".pathChanged() 
+      event == "push" && "pom.xml".pathChanged() 
 
 spec:
   params:
+    # The variable with brackets are special to Pipelines as Code
+    # They will automatically be expanded with the events from Github.
+    - name: repo_url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
     # The variable with brackets are special to Pipelines as Code
     # They will automatically be expanded with the events from Github.
     - name: APP_NAME
@@ -61,27 +67,18 @@ spec:
     - name: REGISTRY
       value: image-registry.openshift-image-registry.svc:5000/sk-app-dev
     - name: CI_NS_PREFIX
-      type: string
-      default: sk      
+      value: sk         
   pipelineSpec:
     params:
-      - name: APP_NAME
-      - name: ENV
-      - name: APP_REPO_URL
-      - name: APP_REPO_NAME
-      - name: APP_GIT_REVISION
-      - name: DEPLOY_REPO_URL
-      - name: DEPLOY_REPO_OWNER
-      - name: DEPLOY_REPO_NAME
-      - name: REGISTRY
-      - name: CI_NS_PREFIX
+      - name: repo_url
+      - name: revision
     workspaces:
-      - name: app-source
+      - name: app-source      
     tasks:
       # ------------ CLONE APP SOURCE ------------ #
       - name: git-app-clone
         taskRef:
-          name: git-clone
+          name: git-clone-custom
         params:
           - name: url
             value: $(params.APP_REPO_URL)
@@ -99,7 +96,6 @@ spec:
         runAfter:
           - git-app-clone
         taskRef:
-          kind: Task
           name: generate-version
         params:
           - name: APP_NAME
@@ -108,21 +104,41 @@ spec:
           - name: source
             workspace: app-source
       # ------------ UNIT TEST ------------ #
+      # - name: mvn-config
+      #   taskRef: 
+      #     name: mvn-config
+      #   runAfter:
+      #     - fetch-repository
+      #   workspaces:
+      #   - name: workspace
+      #     workspace: source
       - name: unit-test
+        taskRef:
+          name: maven
         runAfter:
           - generate-version
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
-            value: unit-test
+            value: unit-test        
+#        params:
+#          - name: CONTEXT_DIR
+#            value: $(params.APP_REPO_NAME)
+#          - name: GOALS
+#            value:
+#              - clean
+#              - test
+#        workspaces:
+#        - name: source
+#          workspace: app-source
+#        - name: maven-settings
+#          workspace: maven-settings
       # ------------ CODE ANALYSIS ------------ #
       - name: code-analysis
         runAfter:
           - generate-version
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -132,7 +148,6 @@ spec:
         runAfter:
           - generate-version
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -144,7 +159,6 @@ spec:
           - code-analysis
           - unit-test
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -154,7 +168,6 @@ spec:
         runAfter:
           - package-app
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -164,14 +177,8 @@ spec:
         runAfter:
           - nexus-upload
         taskRef:
-          task: s2i-java-custom
-          params:
-            - name: url
-              value: https://github.com/skoussou/tekton-catalog.git
-            - name: revision
-              value: main
-            - name: pathInRepo
-              value: ci-tasks/resources/s2i-java-custom/0.1/s2i-java.yaml
+          kind: ClusterTask
+          name: s2i-java       
         params:
           - name: IMAGE
             value: $(params.REGISTRY)/$(params.APP_NAME)
@@ -185,7 +192,6 @@ spec:
         runAfter:
           - build-image
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -195,7 +201,6 @@ spec:
         runAfter:
           - build-image
         taskRef:
-          kind: Task
           name: mock
         params:
           - name: MOCK_MSG
@@ -206,7 +211,6 @@ spec:
           - image-check
           - image-scan
         taskRef:
-          kind: Task
           name: tag-image
         params:
           - name: IMAGE
@@ -214,13 +218,12 @@ spec:
           - name: IMAGE_TAG
             value: latest
           - name: IMAGE_NEW_TAG
-            value: "$(tasks.generate-version.results.version)"
+            value: "$(tasks.generate-version.results.version)"            
       # ------------ CREATE PR ------------ #
       - name: create-pr-to-deploy
         runAfter:
           - tag-image
         taskRef:
-          kind: Task
           name: create-pr-to-deploy
         params:
           - name: DEPLOY_REPO_URL
@@ -241,9 +244,37 @@ spec:
             value: $(params.ENV)
           - name: PR_BODY
             value: |
-              application: $(params.APP_NAME)\nmessage: 'New image for $(params.ENV) environment'\napplicationRepo: $(params.APP_REPO_URL)\napplicationRevision: $(params.APP_GIT_REVISION)\nimage: $(params.REGISTRY)/$(params.APP_NAME)\nversion: $(tasks.generate-version.results.version)\ndeployRepo: $(params.DEPLOY_REPO_URL)\ndeployOwner: $(params.DEPLOY_REPO_OWNER)\ndeployName: $(params.DEPLOY_REPO_NAME)\nenvironment: $(params.ENV)
+              application: $(params.APP_NAME)\nmessage: 'New image for $(params.ENV) environment'\napplicationRepo: $(params.APP_REPO_URL)\napplicationRevision: $(params.APP_GIT_REVISION)\nimage: $(params.REGISTRY)/$(params.APP_NAME)\nversion: $(tasks.generate-version.results.version)\ndeployRepo: $(params.DEPLOY_REPO_URL)\ndeployOwner: $(params.DEPLOY_REPO_OWNER)\ndeployName: $(params.DEPLOY_REPO_NAME)\nenvironment: $(params.ENV)               
+        workspaces:
+          - name: source
+            workspace: app-source              
+#      - name: build-native-executable
+#        params:
+#          - name: GOALS
+#            value:
+#              - '-DskipTests'
+#              - package
+#              - '-Dquarkus.native.container-build=true'
+#          - name: CONTEXT_DIR
+#            value: $(params.APP_REPO_NAME)
+#        runAfter:
+#          - maven-test
+#        taskRef:
+#          kind: ClusterTask
+#          name: maven
+#        workspaces:
+#          - name: source
+#            workspace: app-source
+#          - name: maven-settings
+#            workspace: maven-settings
+            
+            
   workspaces:
-    - name: source
+    - name: maven-settings
+      workspace: maven-settings
+      persistentVolumeClaim:
+        claimName: "maven-pvc"  
+    - name: app-source
       workspace: app-source
       persistentVolumeClaim:
-        claimName: "source-pvc"
+        claimName: "source-pvc"        

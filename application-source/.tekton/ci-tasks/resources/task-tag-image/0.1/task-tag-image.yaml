@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: tag-image
+spec:
+  params:
+  - name: IMAGE
+    type: string
+  - name: IMAGE_TAG
+    type: string
+  - name: IMAGE_NEW_TAG
+  steps:
+  - name: s2i-build
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    script: |
+      #!/usr/bin/env bash
+
+      oc tag $(params.IMAGE):$(params.IMAGE_TAG) $(params.IMAGE):$(params.IMAGE_NEW_TAG)
