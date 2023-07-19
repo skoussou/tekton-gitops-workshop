@@ -11,7 +11,7 @@ spec:
       description: Name of the Application to sync
       type: string
   steps:
-    - image: quay.io/calopezb/argo-utils:1.0.0
+    - image: quay.io/skoussou/argo-utils:1.0.0
       name: eval
       script: |
         ARGO_USER=admin
