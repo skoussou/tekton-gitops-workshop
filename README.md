@@ -9,14 +9,18 @@ Tekton pipelines workshop
 
 ## Installation
 
-Open a terminal abd login into OpenShift using an user with admin rights.
+Open a terminal and login into OpenShift using an user with admin rights.
 
-Execute `install.sh` script. The final output contains the demo installation information. Example:
+1. Configure in `install.sh`
+   * `CSV_GITOPS`: csv version for OCP GitOps operator
+   * `CSV_PIPELINES`: csv version for OCP Pipelines operator
+
+2. Execute `install.sh` script. The final output contains the demo installation information. Example:
 
 ```
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-INSTALATIO COMPLETED!!
+INSTALATION COMPLETED!!
 
 OPENSHIFT NAMESPACES:
   - components: ${YOUR_NAME_INITIAL}-workshop-components
@@ -183,24 +187,24 @@ cat << EOF | oc apply -f  -
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: demo-task
+   name: demo-task
 spec:
-  params:
-    - name: MESSAGE
-  results:
-    - name: MESSAGE_DATE
-  steps:
-    - name: print-message
-      image: registry.access.redhat.com/ubi8/ubi-minimal:8.3
-      script: |
-        echo $(params.MESSAGE)
-    - name: get-date
-      image: registry.access.redhat.com/ubi8/ubi-minimal:8.3
-      script: |
-        DATE=$(date)
-        echo $DATE > $(results.MESSAGE_DATE.path)
-        echo $DATE
-EOF
+   params:
+      - name: MESSAGE
+   results:
+      - name: MESSAGE_DATE
+   steps:
+      - name: print-message
+        image: registry.access.redhat.com/ubi8/ubi-minimal:8.3
+        script: |
+           echo $(params.MESSAGE)
+      - name: get-date
+        image: registry.access.redhat.com/ubi8/ubi-minimal:8.3
+        script: |
+           DATE=$(date)
+           echo $DATE > $(results.MESSAGE_DATE.path)
+           echo $DATE
+   EOF
 ```
 
 Create and test the task:
@@ -222,28 +226,28 @@ cat << EOF | oc apply -f  -
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: demo-pipeline
+   name: demo-pipeline
 spec:
-  params:
-    - name: MESSAGE
-  tasks:
-    - name: task-1
-      taskRef:
-        kind: Task
-        name: demo-task
-      params:
-        - name: MESSAGE
-          value: $(params.MESSAGE)
-    - name: task-2
-      runAfter:
-        - task-1
-      taskRef:
-        kind: Task
-        name: demo-task
-      params:
-        - name: MESSAGE
-          value: "$(tasks.task-1.results.MESSAGE_DATE)"
-EOF
+   params:
+      - name: MESSAGE
+   tasks:
+      - name: task-1
+        taskRef:
+           kind: Task
+           name: demo-task
+        params:
+           - name: MESSAGE
+             value: $(params.MESSAGE)
+      - name: task-2
+        runAfter:
+           - task-1
+        taskRef:
+           kind: Task
+           name: demo-task
+        params:
+           - name: MESSAGE
+             value: "$(tasks.task-1.results.MESSAGE_DATE)"
+   EOF
 ```
 
 Create and test the pipeline:
