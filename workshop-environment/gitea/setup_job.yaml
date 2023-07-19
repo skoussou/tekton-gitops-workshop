@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: git
-        image: quay.io/calopezb/git-utils:1.0.0
+        image: quay.io/skoussou/git-utils:1.0.0
         env:
         - name: GITEA_HOSTNAME
           value: @HOSTNAME
